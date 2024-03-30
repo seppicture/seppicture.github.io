@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="https://cdn.luogu.com.cn/upload/usericon/942118.png">
+<title>Sep的图片中转站</title>
+<style>
+    #image-container {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+    }
+    .image-box {
+        margin: 10px;
+        padding: 10px;
+        border: 1px solid #ccc;
+    }
+</style>
+</head>
+<body>
+    <h1>图片中转站</h1>
+    <h3>简易地保存你的图片！</h3>
+    <div id="image-count"></div>
+    <input type="file" id="file-input" accept="image/*">
+    <button id="clear-button">清空全部图片（谨慎操作）</button>
+    <button id="upload-button">上传图片到云服务器</button>
+    <button id="download-button">下载全部图片</button>
+    <div id="image-container"></div>
+    <div id="image-url"></div>
+    <script>
+        // 读取本地存储中的图片数量和图片
+        window.onload = function() {
+            let count = localStorage.getItem('imageCount') || 0;
+            document.getElementById('image-count').innerText = `图片总数: ${count}`;
+            for (let i = 0; i < count; i++) {
+                const imageUrl = localStorage.getItem(`image${i}`);
+                if (imageUrl) {
+                    const imageBox = document.createElement('div');
+                    imageBox.className = 'image-box';
+                    const image = document.createElement('img');
+                    image.src = imageUrl;
+                    imageBox.appendChild(image);
+                    document.getElementById('image-container').appendChild(imageBox);
+                }
+            }
+        };
+
+        document.getElementById('file-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageUrl = e.target.result;
+                const count = localStorage.getItem('imageCount') || 0;
+                localStorage.setItem(`image${count}`, imageUrl);
+                localStorage.setItem('imageCount', parseInt(count) + 1);
+
+                const imageBox = document.createElement('div');
+                imageBox.className = 'image-box';
+                const image = document.createElement('img');
+                image.src = imageUrl;
+                imageBox.appendChild(image);
+                document.getElementById('image-container').appendChild(imageBox);
+
+                document.getElementById('image-count').innerText = `图片总数: ${parseInt(count) + 1}`;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('clear-button').addEventListener('click', function() {
+            localStorage.clear();
+            document.getElementById('image-container').innerHTML = '';
+            document.getElementById('image-count').innerText = '图片总数: 0';
+        });
+
+        document.getElementById('upload-button').addEventListener('click', function() {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('image')) {
+                    const imageUrl = localStorage.getItem(key);
+                    const image = new Image();
+                    image.src = imageUrl;
+                    const data = new FormData();
+                    data.append('image', image);
+
+                    fetch('https://imgse.com/upload', {
+                        method: 'POST',
+                        body: data
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('image-url').innerHTML = `图片URL地址: ${data.url}`;
+                    })
+                    .catch(error => console.error('上传失败:', error));
+                }
+            }
+        });
+
+        document.getElementById('download-button').addEventListener('click', function() {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('image')) {
+                    const imageUrl = localStorage.getItem(key);
+                    const link = document.createElement('a');
+                    link.href = imageUrl;
+                    link.download = `image${i}.png`;
+                    link.click();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
